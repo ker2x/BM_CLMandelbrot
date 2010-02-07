@@ -14,9 +14,13 @@ Import brl.StandardIO   'stdio
 '-----
 Const SCREEN_WIDTH:Int = 512  'Screen Width
 Const SCREEN_HEIGHT:Int = 512 'Screen Height
+Const SCREEN_SIZE:Int = SCREEN_WIDTH * SCREEN_HEIGHT
 
 'Variable
 '--------
+
+'OpenGL stuff
+Global screen_tex:Int
 
 'Fractal stuff
 Global complexLeft:Float = -1.5    'Min cX
@@ -28,27 +32,39 @@ Global complexTop:Float = 1.5      'Max cY
 Global complexWidth:Float = complexRight - complexLeft
 Global complexHeight:Float = complexBottom - complexTop
 
-
+Global complex_Buffer:Float[] = New Float[SCREEN_SIZE]
+Global pixel_Buffer:Int[] = New Int[SCREEN_SIZE]
 
 'OpenCL Setup
 '------------
-'Local platform:TCLPlatform = TCLPlatform.InitDevice(CL_DEVICE_TYPE_ALL)
+Local platform:TCLPlatform = TCLPlatform.InitDevice(CL_DEVICE_TYPE_ALL)
 'Local program:TCLProgram = platform.LoadProgram(LoadString("mandelbrot.cl"))
 'Local kernelMandel:TCLKernel = program.LoadKernel("mandel")
 
-'Global workDim:Int = 1
-'Global globalWorkSize:Int[workDim]
-'Global localWorkSize:Int[workDim]
+Global workDim:Int = 1
+Global globalWorkSize:Int[workDim]
+Global localWorkSize:Int[workDim]
 
-'globalWorkSize[0] = SCREEN_HEIGHT * SCREEN_WIDTH
-'localWorkSize[0] = 1   '128
+globalWorkSize[0] = SCREEN_SIZE
+localWorkSize[0] = 1   '128
+
+Global cl_InputBuffer:TCLBuffer
+Global cl_OutputBuffer:TCLBuffer
+
+cl_InputBuffer = platform.CreateBuffer(CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, SCREEN_SIZE * 4, complex_Buffer)
+cl_OutputBuffer = platform.CreateBuffer(CL_MEM_WRITE_ONLY, SCREEN_SIZE * 4)
 
 'OpenGL Setup
 '------------
 
-GLGraphics(SCREEN_WIDTH, SCREEN_HEIGHT)   'Create OpenGL graphics context
+'Use raw OpenGL Graphic driver
+SetGraphicsDriver(GLGraphicsDriver())
 
-glewInit()  'Initialize OpenGL Extension
+'Create OpenGL graphics context
+GLGraphics(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 60, GRAPHICS_BACKBUFFER)
+
+'Initialize OpenGL Extension
+glewInit()
 
 glClearColor(0.0, 0.0, 0.0, 1.0)
 
@@ -62,7 +78,7 @@ glDisable(GL_LIGHTING)     'disable lightning
 	
 glMatrixMode(GL_PROJECTION)
 glLoadIdentity()
-glOrtho(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, -1, 1)   'parallel projection : x=0->SCREEN_WIDTH, y=0->SCREEN_HEIGHT
+gluOrtho2D(0, SCREEN_WIDTH, SCREEN_HEIGHT, 0)   'parallel projection : x=0->SCREEN_WIDTH, y=0->SCREEN_HEIGHT
 
 glMatrixMode(GL_MODELVIEW)
 glLoadIdentity()

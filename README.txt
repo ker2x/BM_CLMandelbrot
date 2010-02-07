@@ -1,0 +1,1 @@
+Mandelbrot fractal generator using BlitzMax and OpenCL
